@@ -67,7 +67,13 @@ class TaskLoopTests(unittest.TestCase):
             loop.connect(target)
 
     def test_reject_storage_symlink(self):
-        (self.user / "MEMORY").symlink_to(Path(self.tmp.name), target_is_directory=True)
+        # setUp already created a real MEMORY directory via connect;
+        # switch only the nested storage folder to a symlink.
+        import shutil
+        self.db.close()
+        storage = self.user / "MEMORY" / "_PERSONAL_AI_OS"
+        shutil.rmtree(storage)
+        storage.symlink_to(Path(self.tmp.name), target_is_directory=True)
         with self.assertRaises(ValueError):
             loop.connect(self.user)
 
