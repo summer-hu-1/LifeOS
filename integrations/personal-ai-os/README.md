@@ -73,3 +73,36 @@ Run the LifeOS interview with these files as **evidence to review**, then explic
 This integration is an *offline import aid*, not a ChatGPT connector, not a data sync daemon, not an installer, and not a guarantee that any local device was configured. The public fork tracks an upstream project with its own security policies and moving architecture: audit version changes before upgrading. Do not execute a downloaded install script without reviewing its provenance and consent prompts.
 
 For the official installation and diagnostics, see `LifeOS/SKILL.md`, `LifeOS/INSTALL.md`, and `LifeOS/GETTING-STARTED.md` in this repository.
+
+## Task execution MVP (local-only)
+
+The `task_loop.py` command is a **real local task state machine**, not a live push service. It stores a private SQLite database under `USER/MEMORY/_PERSONAL_AI_OS/tasks.sqlite3`, includes an append-only event log, and queues notifications *without sending them*. No GitHub Actions workflow accesses these private files.
+
+```bash
+USER_DIR="$HOME/.config/LIFEOS/USER"
+python3 integrations/personal-ai-os/task_loop.py --user-dir "$USER_DIR" init
+python3 integrations/personal-ai-os/task_loop.py --user-dir "$USER_DIR" add \
+  --title "Focus on today's most important task" \
+  --due "2026-11-24T09:00:00+08:00" --domain "growth"
+python3 integrations/personal-ai-os/task_loop.py --user-dir "$USER_DIR" tick
+python3 integrations/personal-ai-os/task_loop.py --user-dir "$USER_DIR" report
+```
+
+The `tick` output contains `queued` entries and `sent: 0`. A real notification provider is **not connected yet**. After a separate trusted adapter has actually delivered a message, the operator can record the provider's real receipt and user acknowledgement with:
+
+```bash
+python3 integrations/personal-ai-os/task_loop.py --user-dir "$USER_DIR" delivered --id TASK_ID --receipt REAL_PROVIDER_RECEIPT
+python3 integrations/personal-ai-os/task_loop.py --user-dir "$USER_DIR" acknowledged --id TASK_ID
+python3 integrations/personal-ai-os/task_loop.py --user-dir "$USER_DIR" completed --id TASK_ID
+python3 integrations/personal-ai-os/task_loop.py --user-dir "$USER_DIR" report
+```
+
+Do not manufacture delivery receipts, or treat a scheduled task / queued event as delivery proof. Until a trusted provider is connected and a worker actually invokes `tick`, this is a **manual/locally invoked** lifecycle; no background daemon is installed and nothing runs on a schedule.
+
+### Verification
+
+```bash
+python3 -m unittest discover -s integrations/personal-ai-os -p "test_*.py" -v
+```
+
+These tests use synthetic records in temporary local directories, never personal data. This is an MVP: no recurring tasks, retrying delivery workers, authentication layer, claim leases or multi-worker transactional dispatch yet. Review the deployment threat model before mounting a remote UI or synchronizing the SQLite database.
