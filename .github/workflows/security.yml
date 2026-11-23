@@ -30,6 +30,7 @@ jobs:
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
           # The same gitleaks the release scan runs; the action default (8.24.3) ignores .gitleaks.toml [[allowlists]].
           GITLEAKS_VERSION: "8.28.0"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   sensitive-content:
     name: Sensitive-content scan
